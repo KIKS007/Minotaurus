@@ -18,4 +18,19 @@ public class Enemy : MonoBehaviour {
     {
         Debug.Log(damage);
     }
+
+    public void SetSpeed(float speed)
+    {
+
+    }
+
+    public void ResetSpeed()
+    {
+
+    }
+
+    public void SetDestination(Transform t, float d)
+    {
+
+    }
 }

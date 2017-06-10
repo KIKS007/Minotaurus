@@ -46,7 +46,7 @@ public class Weapon : MonoBehaviour {
                 if (Mun2 != null)
                 {
                     Instantiate(Mun2, Canon.position, transform.rotation);
-                    _cooldown1 = Mun2.cooldown;
+                    _cooldown2 = Mun2.cooldown;
                 }
             }
         }

@@ -40,7 +40,7 @@ public class Ammo : MonoBehaviour {
 
     void OnCollisionEnter(Collision col)
     {
-        if (child != null && col.transform.tag == "Enviro")
+        if (child != null && col.transform.tag != "Ammo")
         {
             Instantiate(child, transform.position, Quaternion.identity);
             Destroy(gameObject);
