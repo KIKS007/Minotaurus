@@ -10,10 +10,8 @@ public enum EnemyState { Normal, Stunned, Stuck, Pushed, Dead };
 public class Enemy : MonoBehaviour 
 {
 	public EnemyState enemyState = EnemyState.Normal;
-	public LayerMask wallLayer;
 
 	[Header ("Health")]
-	[Range (0, 100)]
 	public float health = 5;
 
 	[Header ("Speed")]
@@ -21,20 +19,25 @@ public class Enemy : MonoBehaviour
 
 	[Header ("LookAt")]
 	public float lookAtLerp = 0.5f;
+	public bool lookAtHead = false;
 
 	[Header ("Follow")]
 	public float followUpdateDelay = 0.1f;
 
 	[Header ("Debug")]
 	public Transform target;
-	public float distanceFromTarget;
+	public float distanceFromPlayer;
 	public bool debugLog = true;
 
 	private float _initialSpeed;
-	private float _initialLookAtLerp;
 	private NavMeshAgent _navMeshAgent;
-	private Transform _player;
+	[HideInInspector]
+	public Transform _player;
 	private Rigidbody _rigidbody;
+	[HideInInspector]
+	public Transform _head;
+	[HideInInspector]
+	public float _distanceFromTarget;
 
 	// Use this for initialization
 	void Start () 
@@ -48,10 +51,12 @@ public class Enemy : MonoBehaviour
 
 		_player = GameObject.FindGameObjectWithTag ("Player").transform;
 
+		if(lookAtHead)
+			_head = transform.GetChild (0);
+
 		_rigidbody = GetComponent<Rigidbody> ();
 		_navMeshAgent = GetComponent<NavMeshAgent> ();
 		_initialSpeed = speed;
-		_initialLookAtLerp = lookAtLerp;
 
 		_navMeshAgent.speed = speed;
 
@@ -60,8 +65,6 @@ public class Enemy : MonoBehaviour
 	
 	void Update () 
 	{
-		LookAt ();
-
 		DistanceFromTarget ();
 	}
 
@@ -70,7 +73,7 @@ public class Enemy : MonoBehaviour
 
 	}
 
-	void LookAt ()
+	public void LookAt ()
 	{
 		if (target == null)
 			return;
@@ -78,21 +81,61 @@ public class Enemy : MonoBehaviour
 		if (enemyState == EnemyState.Stunned)
 			return;
 
+		Vector3 targetPosition = target.position;
+
+		Quaternion rotation = Quaternion.LookRotation (targetPosition - _head.position);
+
+		if(lookAtHead)
+			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
+
+		targetPosition.y = transform.position.y; 
+		rotation = Quaternion.LookRotation (targetPosition - transform.position);
+		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
+	}
+
+	public void LookAt (Transform target)
+	{
+		if (target == null)
+			return;
+
+		if (enemyState == EnemyState.Stunned)
+			return;
 
 		Vector3 targetPosition = target.position;
-		targetPosition.y = transform.position.y;
 
-		Quaternion rotation = Quaternion.LookRotation (targetPosition - transform.position);
+		Quaternion rotation = Quaternion.LookRotation (targetPosition - _head.position);
 
+		if(lookAtHead)
+			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
+
+		targetPosition.y = transform.position.y; 
+		rotation = Quaternion.LookRotation (targetPosition - transform.position);
+		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
+	}
+
+	public void LookAt (Vector3 target)
+	{
+		if (enemyState == EnemyState.Stunned)
+			return;
+
+		Quaternion rotation = Quaternion.LookRotation (target - _head.position);
+
+		if(lookAtHead)
+			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
+
+		target.y = transform.position.y; 
+		rotation = Quaternion.LookRotation (target - transform.position);
 		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
 	}
 
 	void DistanceFromTarget ()
 	{
 		if (target == null)
-			distanceFromTarget = -1;
+			_distanceFromTarget = -1;
 		else
-			distanceFromTarget = Vector3.Distance (transform.position, target.position);
+			_distanceFromTarget = Vector3.Distance (transform.position, target.position);
+
+		distanceFromPlayer = Vector3.Distance (transform.position, _player.position);
 	}
 
 	void OnCollisionEnter (Collision collision)
@@ -103,7 +146,7 @@ public class Enemy : MonoBehaviour
 				Debug.Log (name + " : player hit!");
 		}
 
-		if(collision.gameObject.tag == "Wall" || (wallLayer.value & 1<<collision.gameObject.layer) == 1 <<collision.gameObject.layer)
+		if(collision.gameObject.tag == "Wall" || (EnemyManager.Instance.wallLayer.value & 1<<collision.gameObject.layer) == 1 <<collision.gameObject.layer)
 		{
 			if(debugLog)
 				Debug.Log (name + " : wall hit!");
@@ -190,6 +233,8 @@ public class Enemy : MonoBehaviour
 	{
 		_navMeshAgent.SetDestination (target.position);
 
+		_navMeshAgent.enabled = true;
+
 		this.target = target;
 
 		StopCoroutine (SetFollowUpdate ());
@@ -204,12 +249,21 @@ public class Enemy : MonoBehaviour
 		if(_player == null)
 			_player = GameObject.FindGameObjectWithTag ("Player").transform;
 
+		_navMeshAgent.enabled = true;
+
 		target = _player;
 
 		StopCoroutine (SetFollowUpdate ());
 		StartCoroutine (SetFollowUpdate ());
 
 		_navMeshAgent.SetDestination (_player.position);
+	}
+
+	public void StopFollow ()
+	{
+		StopCoroutine (SetFollowUpdate ());
+
+		_navMeshAgent.enabled = false;
 	}
 
 	public void SetSpeed (float speedValue)
@@ -219,18 +273,9 @@ public class Enemy : MonoBehaviour
 		_navMeshAgent.speed = speed;
 	}
 
-	public void SetSpeed (float speedValue, float angularSpeedValue)
-	{
-		speed = speedValue;
-		lookAtLerp = angularSpeedValue;
-
-		_navMeshAgent.speed = speed;
-	}
-
 	public void ResetSpeed ()
 	{
 		speed = _initialSpeed;
-		lookAtLerp = _initialLookAtLerp;
 	}
 
 	IEnumerator SetFollowUpdate ()
@@ -240,7 +285,7 @@ public class Enemy : MonoBehaviour
 
 		if(_navMeshAgent.enabled)
 		{
-			if(distanceFromTarget > _navMeshAgent.stoppingDistance)
+			if(_distanceFromTarget > _navMeshAgent.stoppingDistance)
 				_navMeshAgent.SetDestination (target.position);
 		}
 

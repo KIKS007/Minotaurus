@@ -1,0 +1,70 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using DG.Tweening;
+
+public class EnemyFlying : EnemyComponent 
+{
+	public enum Avoidance { None, Up, Down }
+
+	[Header ("Avoidance")]
+	public Avoidance avoidance = Avoidance.None;
+	public float rayDistance = 3f;
+	public float avoidanceSpeed = 1;
+	public float avoidanceLerp = 0.1f;
+	public float preferedHeight = 4f;
+	public float preferedHeightDelay = 1f;
+
+	protected override void Update ()
+	{
+		base.Update ();
+
+		Avoid ();
+
+		if (avoidance == Avoidance.None)
+			PreferedHeight ();
+	}
+
+	void PreferedHeight ()
+	{
+		_navMeshAgent.baseOffset = Mathf.Lerp (_navMeshAgent.baseOffset, preferedHeight, avoidanceLerp * 0.1f);
+	}
+
+	void Avoid ()
+	{
+		Vector3 up = transform.forward;
+		Vector3 down = up;
+		up.y = 1f;
+		down.y = -1f;
+
+		RaycastHit hit1 = new RaycastHit ();
+		Physics.Raycast (transform.position, up, out hit1, rayDistance, EnemyManager.Instance.wallLayer, QueryTriggerInteraction.Ignore);
+		RaycastHit hit2 = new RaycastHit ();
+		Physics.Raycast (transform.position, down, out hit2, rayDistance, EnemyManager.Instance.wallLayer, QueryTriggerInteraction.Ignore);
+
+		Debug.DrawRay (transform.position, up.normalized * rayDistance, Color.blue);
+		Debug.DrawRay (transform.position, down.normalized * rayDistance, Color.red);
+
+		if(hit1.collider != null && hit2.collider == null || hit1.collider != null && hit1.distance < hit2.distance)
+		{
+			avoidance = Avoidance.Down;
+			DOTween.Kill ("WaitPreferedHeight" + gameObject.GetInstanceID ());
+			_navMeshAgent.baseOffset = Mathf.Lerp (_navMeshAgent.baseOffset, _navMeshAgent.baseOffset - avoidanceSpeed, avoidanceLerp);
+		}
+
+		else if(hit2.collider != null && hit1.collider == null || hit2.collider != null && hit1.distance > hit2.distance)
+		{
+			avoidance = Avoidance.Up;
+			DOTween.Kill ("WaitPreferedHeight" + gameObject.GetInstanceID ());
+			_navMeshAgent.baseOffset = Mathf.Lerp (_navMeshAgent.baseOffset, _navMeshAgent.baseOffset + avoidanceSpeed, avoidanceLerp);
+		}
+		
+		if (hit1.collider == null && hit2.collider == null)
+		{
+			if (avoidance != Avoidance.None)
+			{
+				DOVirtual.DelayedCall (preferedHeightDelay, ()=> avoidance = Avoidance.None).SetId ("WaitPreferedHeight" + gameObject.GetInstanceID ());
+			}
+		}
+	}
+}
