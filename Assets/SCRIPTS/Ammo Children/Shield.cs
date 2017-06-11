@@ -28,8 +28,6 @@ public class Shield : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        _rend.material.color = new Color(_rend.material.color.r, _rend.material.color.g, _rend.material.color.b, _life / life);
-
         _firerate -= Time.deltaTime;
         if (_firerate <= 0f)
         {
@@ -53,6 +51,12 @@ public class Shield : MonoBehaviour {
             Destroy(col.gameObject);
             //_life -= ammo.damage;
             _life -= 5;
+            float colorValue = ((float)_life * _rend.material.color.r) /(float)life ;
+            _rend.material.color = new Color(colorValue, colorValue, colorValue, 1f);
+            if(_life <= 0)
+            {
+                transform.DOScaleY(0, 0.2f).OnComplete(() => Destroy(gameObject));
+            }
         }
     }
     void OnTriggerExit(Collider col)
