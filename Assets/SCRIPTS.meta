@@ -1,7 +1,13 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 4ace9959ffb2a6142874488d3bd6c382
 folderAsset: yes
 timeCreated: 1497102208
+=======
+guid: f08174d6853519547be1b745e0fb9bbc
+folderAsset: yes
+timeCreated: 1497106895
+>>>>>>> Kiki
 licenseType: Free
 DefaultImporter:
   userData: 
