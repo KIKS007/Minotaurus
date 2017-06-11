@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 44fd9dc85e91f1142904007859cd2635
+timeCreated: 1497137942
+licenseType: Free
+ShaderImporter:
+  defaultTextures:
+  - _Albedo: {fileID: 2800000, guid: 84508b93f15f2b64386ec07486afc7a3, type: 3}
+  - _ToonRamp: {fileID: 2800000, guid: 52e66a9243cdfed44b5e906f5910d35b, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
