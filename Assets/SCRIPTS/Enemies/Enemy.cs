@@ -22,17 +22,14 @@ public class Enemy : MonoBehaviour
 	public float lookAtLerp = 0.5f;
 	public bool lookAtHead = false;
 
-	[Header ("Follow")]
-	public float followUpdateDelay = 0.1f;
-
 	[Header ("Debug")]
 	public Transform target;
+	public Vector3 targetPos;
 	public float distanceFromPlayer;
 
-	private float _initialSpeed;
-	private NavMeshAgent _navMeshAgent;
 	[HideInInspector]
-	public Transform _player;
+	public float _initialSpeed;
+	private NavMeshAgent _navMeshAgent;
 	private Rigidbody _rigidbody;
 	[HideInInspector]
 	public Transform _head;
@@ -63,8 +60,6 @@ public class Enemy : MonoBehaviour
 	{
 		enemyState = EnemyState.Normal;
 
-		_player = GameObject.FindGameObjectWithTag ("Player").transform;
-
 		if(lookAtHead)
 			_head = transform.GetChild (0);
 
@@ -90,29 +85,25 @@ public class Enemy : MonoBehaviour
 			return false;
 	}
 
+	public bool IsFollowingTransform ()
+	{
+		if (target != null)
+			return true;
+		else
+			return false;
+	}
+
+	public bool IsFollowingVector ()
+	{
+		if (targetPos != Vector3.zero)
+			return true;
+		else
+			return false;
+	}
+
 	void FixedUpdate () 
 	{
 
-	}
-
-	public void LookAt ()
-	{
-		if (target == null)
-			return;
-
-		if (enemyState == EnemyState.Stunned)
-			return;
-
-		Vector3 targetPosition = target.position;
-
-		Quaternion rotation = Quaternion.LookRotation (targetPosition - _head.position);
-
-		if(lookAtHead)
-			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
-
-		targetPosition.y = transform.position.y; 
-		rotation = Quaternion.LookRotation (targetPosition - transform.position);
-		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
 	}
 
 	public void LookAt (Transform target, float lerpValue = -1)
@@ -127,7 +118,7 @@ public class Enemy : MonoBehaviour
 
 		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
 
-		Quaternion rotation = null;
+		Quaternion rotation = new Quaternion ();
 
 		if(lookAtHead)
 		{
@@ -147,7 +138,7 @@ public class Enemy : MonoBehaviour
 
 		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
 
-		Quaternion rotation = null;
+		Quaternion rotation = new Quaternion ();
 
 		if(lookAtHead)
 		{
@@ -162,12 +153,17 @@ public class Enemy : MonoBehaviour
 
 	void DistanceFromTarget ()
 	{
-		if (target == null)
+		if (target == null && targetPos == Vector3.zero)
 			_distanceFromTarget = -1;
 		else
-			_distanceFromTarget = Vector3.Distance (transform.position, target.position);
+		{
+			if(target != null)
+				_distanceFromTarget = Vector3.Distance (transform.position, target.position);
+			else 
+				_distanceFromTarget = Vector3.Distance (transform.position, targetPos);
+		}
 
-		distanceFromPlayer = Vector3.Distance (transform.position, _player.position);
+		distanceFromPlayer = Vector3.Distance (transform.position, EnemyManager.Instance._player.position);
 	}
 
 	void OnCollisionEnter (Collision collision)
@@ -208,7 +204,7 @@ public class Enemy : MonoBehaviour
 
 		Stuck (false);
 
-		_rigidbody.AddForce (direction* force, forcemode);
+		_rigidbody.AddForce (direction * force, forcemode);
 
 		DOVirtual.DelayedCall (duration, Unstuck);
 	}
@@ -289,6 +285,7 @@ public class Enemy : MonoBehaviour
 
 		_navMeshAgent.enabled = true;
 
+		targetPos = Vector3.zero;
 		this.target = target;
 
 		StopCoroutine (SetFollowUpdate ());
@@ -297,19 +294,43 @@ public class Enemy : MonoBehaviour
 		DOVirtual.DelayedCall (duration, ()=> SetPlayerDestination ());
 	}
 
-	public void SetPlayerDestination ()
+	public void SetDestination (Vector3 target)
 	{
-		if(_player == null)
-			_player = GameObject.FindGameObjectWithTag ("Player").transform;
+		_navMeshAgent.SetDestination (target);
 
 		_navMeshAgent.enabled = true;
 
-		target = _player;
+		targetPos = target;
+		this.target = null;
+
+		StopCoroutine (SetFollowUpdate ());
+		StartCoroutine (SetFollowUpdate ());
+	}
+
+	public void SetDestination (Transform target)
+	{
+		_navMeshAgent.SetDestination (target.position);
+
+		_navMeshAgent.enabled = true;
+
+		this.target = target;
+		targetPos = Vector3.zero;
+
+		StopCoroutine (SetFollowUpdate ());
+		StartCoroutine (SetFollowUpdate ());
+	}
+
+	public void SetPlayerDestination ()
+	{
+		_navMeshAgent.enabled = true;
+
+		target = EnemyManager.Instance._player;
+		targetPos = Vector3.zero;
 
 		StopCoroutine (SetFollowUpdate ());
 		StartCoroutine (SetFollowUpdate ());
 
-		_navMeshAgent.SetDestination (_player.position);
+		_navMeshAgent.SetDestination (EnemyManager.Instance._player.position);
 	}
 
 	public void StopFollow ()
@@ -318,6 +339,7 @@ public class Enemy : MonoBehaviour
 
 		_navMeshAgent.ResetPath ();
 		target = null;
+		targetPos = Vector3.zero;
 	}
 
 	public void SetSpeed (float speedValue)
@@ -343,7 +365,7 @@ public class Enemy : MonoBehaviour
 				_navMeshAgent.SetDestination (target.position);
 		}
 
-		yield return new WaitForSeconds (followUpdateDelay);
+		yield return new WaitForSeconds (EnemyManager.Instance.updateTime);
 
 		StartCoroutine (SetFollowUpdate ());
 	}

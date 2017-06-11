@@ -35,7 +35,7 @@ public class EnemyShooting : EnemyComponent
 
 		if(_enemyScript.distanceFromPlayer > shootingRange.x && _enemyScript.distanceFromPlayer < shootingRange.y)
 		{
-			_enemyScript.LookAt (_enemyScript._player);
+			_enemyScript.LookAt (EnemyManager.Instance._player);
 
 			_enemyScript.lookAtLerp = shootingLookAtLerp;
 
