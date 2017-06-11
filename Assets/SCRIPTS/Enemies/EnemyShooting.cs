@@ -61,7 +61,8 @@ public class EnemyShooting : EnemyComponent
 		if(_enemyScript.lookAtHead)
 			rotation = _enemyScript._head.transform.rotation;
 
-		Instantiate (projectile, position, rotation);
+		GameObject clone = Instantiate (projectile, position, rotation) as GameObject;
+		clone.GetComponent<EnemyProjectile> ()._enemyScript = _enemyScript;
 
 		DOVirtual.DelayedCall (shootingCooldown, ()=> _canShoot = true);	
 	}

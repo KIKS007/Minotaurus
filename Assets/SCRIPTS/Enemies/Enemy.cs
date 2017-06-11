@@ -28,7 +28,6 @@ public class Enemy : MonoBehaviour
 	[Header ("Debug")]
 	public Transform target;
 	public float distanceFromPlayer;
-	public bool debugLog = true;
 
 	private float _initialSpeed;
 	private NavMeshAgent _navMeshAgent;
@@ -126,12 +125,15 @@ public class Enemy : MonoBehaviour
 
 		Vector3 targetPosition = target.position;
 
-		Quaternion rotation = Quaternion.LookRotation (targetPosition - _head.position);
-
 		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
 
+		Quaternion rotation = null;
+
 		if(lookAtHead)
+		{
+			rotation = Quaternion.LookRotation (targetPosition - _head.position);
 			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lerp);
+		}
 
 		targetPosition.y = transform.position.y; 
 		rotation = Quaternion.LookRotation (targetPosition - transform.position);
@@ -143,12 +145,15 @@ public class Enemy : MonoBehaviour
 		if (enemyState == EnemyState.Stunned)
 			return;
 
-		Quaternion rotation = Quaternion.LookRotation (target - _head.position);
-
 		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
 
+		Quaternion rotation = null;
+
 		if(lookAtHead)
+		{
+			rotation = Quaternion.LookRotation (target - _head.position);
 			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lerp);
+		}
 
 		target.y = transform.position.y; 
 		rotation = Quaternion.LookRotation (target - transform.position);
@@ -169,13 +174,13 @@ public class Enemy : MonoBehaviour
 	{
 		if(collision.gameObject.tag == "Player")
 		{
-			if(debugLog)
+			if(EnemyManager.Instance.debugLog)
 				Debug.Log (name + " : player hit!");
 		}
 
 		if(collision.gameObject.tag == "Wall" || (EnemyManager.Instance.wallLayer.value & 1<<collision.gameObject.layer) == 1 <<collision.gameObject.layer)
 		{
-			if(debugLog)
+			if(EnemyManager.Instance.debugLog)
 				Debug.Log (name + " : wall hit!");
 		}
 	}
@@ -260,7 +265,7 @@ public class Enemy : MonoBehaviour
 		if (OnHit != null)
 			OnHit ();
 
-		if(debugLog)
+		if(EnemyManager.Instance.debugLog)
 			Debug.Log (name + " : -" + damage);
 
 		if(health <= 0)
@@ -269,7 +274,7 @@ public class Enemy : MonoBehaviour
 
 	public void Death ()
 	{
-		if(debugLog)
+		if(EnemyManager.Instance.debugLog)
 			Debug.Log (name + " : dead!");
 
 		if (OnDeath != null)
@@ -292,7 +297,6 @@ public class Enemy : MonoBehaviour
 		DOVirtual.DelayedCall (duration, ()=> SetPlayerDestination ());
 	}
 
-	[ButtonAttribute("Follow Player")]
 	public void SetPlayerDestination ()
 	{
 		if(_player == null)

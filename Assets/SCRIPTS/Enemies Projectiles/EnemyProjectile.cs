@@ -11,11 +11,11 @@ public class EnemyProjectile : MonoBehaviour
 	public float gravity = 0;
 
 	private Rigidbody _rigidbody;
+	[HideInInspector]
+	public Enemy _enemyScript;
 
 	void Start ()
 	{
-		//transform.LookAt (new Vector3 (transform.forward.x, transform.forward.y * heightOffset, transform.forward.z));
-
 		Transform player = GameObject.FindGameObjectWithTag ("Player").transform;
 
 		transform.Rotate (-Vector3.right * heightOffset);
@@ -32,9 +32,14 @@ public class EnemyProjectile : MonoBehaviour
 
 	void OnTriggerEnter (Collider collider)
 	{
+		if (collider.isTrigger)
+			return;
+
 		if(collider.gameObject.tag == "Player")
 		{
-			Debug.Log ("Player hit!");
+			if(EnemyManager.Instance.debugLog)
+				Debug.Log ("Player hit!");
+
 			DOTween.Kill ("Projectile" + gameObject.GetInstanceID ());
 			Destroy (gameObject);
 		}
