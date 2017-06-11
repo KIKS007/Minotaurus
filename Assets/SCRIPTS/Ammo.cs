@@ -13,6 +13,8 @@ public class Ammo : MonoBehaviour {
     [Header("Weapon Related")]
     public float cooldown;
     public float recoil;
+    [Header("Enemy Related")]
+    public float knockback;
     
     private float _timer = -1f;
     private Rigidbody _rb;
@@ -49,6 +51,7 @@ public class Ammo : MonoBehaviour {
         {
             if (damage != 0f && col.transform.tag == "Enemy")
             {
+                col.transform.GetComponent<Enemy>().Push(_rb.velocity.normalized, knockback, ForceMode.Impulse);
                 if (duration != 0f)
                 {
                     transform.GetComponent<Collider>().enabled = false;

@@ -14,7 +14,7 @@ public class Buzzer : MonoBehaviour {
 	void OnTriggerEnter (Collider col) {
 		if(col.tag == "Enemy")
         {
-            col.GetComponent<Enemy>().SetDestination(transform, duration);
+            col.GetComponent<Enemy>().SetDestinationTemporarily(transform, duration);
         }
 	}
 }
