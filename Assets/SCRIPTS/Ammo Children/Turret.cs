@@ -31,6 +31,8 @@ public class Turret : MonoBehaviour {
                 float distMin = 1000f;
                 foreach (Enemy e in _enemyList)
                 {
+                    if (e == null)
+                        return;
                     float dist = Vector3.Distance(transform.position, e.transform.position);
                     if (distMin == 1000f || distMin > dist)
                     {
