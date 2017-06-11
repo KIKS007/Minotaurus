@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using Sirenix.OdinInspector;
 
 public class EnemyFlying : EnemyComponent 
 {
@@ -12,8 +13,24 @@ public class EnemyFlying : EnemyComponent
 	public float rayDistance = 3f;
 	public float avoidanceSpeed = 1;
 	public float avoidanceLerp = 0.1f;
-	public float preferedHeight = 4f;
+
+	[Header ("Prefered Height")]
+	[MinMaxSliderAttribute (0, 10)]
+	public Vector2 preferedHeightLimits;
 	public float preferedHeightDelay = 1f;
+	public float floatingHeight = 1f;
+	public float floatingHeightSpeed = 1f;
+
+	public float _preferedHeight;
+
+	protected override void Start ()
+	{
+		base.Start ();
+
+		_preferedHeight = Random.Range (preferedHeightLimits.x, preferedHeightLimits.y);
+
+		DOTween.To (()=> _preferedHeight, x=> _preferedHeight =x, _preferedHeight + floatingHeight, floatingHeightSpeed).SetEase (Ease.OutQuad).SetLoops (-1, LoopType.Yoyo).SetSpeedBased ();
+	}
 
 	protected override void Update ()
 	{
@@ -27,7 +44,7 @@ public class EnemyFlying : EnemyComponent
 
 	void PreferedHeight ()
 	{
-		_navMeshAgent.baseOffset = Mathf.Lerp (_navMeshAgent.baseOffset, preferedHeight, avoidanceLerp * 0.1f);
+		_navMeshAgent.baseOffset = Mathf.Lerp (_navMeshAgent.baseOffset, _preferedHeight, avoidanceLerp * 0.1f);
 	}
 
 	void Avoid ()
