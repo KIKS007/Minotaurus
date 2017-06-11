@@ -6,6 +6,7 @@ using DG.Tweening;
 using Sirenix.OdinInspector;
 
 public enum EnemyState { Normal, Stunned, Stuck, Pushed, Dead };
+public delegate void EventHandler ();
 
 public class Enemy : MonoBehaviour 
 {
@@ -39,6 +40,20 @@ public class Enemy : MonoBehaviour
 	[HideInInspector]
 	public float _distanceFromTarget;
 
+	public event EventHandler OnStuck;
+	public event EventHandler OnUntuck;
+	public event EventHandler OnStun;
+	public event EventHandler OnPush;
+	public event EventHandler OnHit;
+	public event EventHandler OnDeath;
+
+	/*public float force;
+	[Button]
+	public void PushDebug ()
+	{
+		Push (-transform.forward, force, ForceMode.Impulse);
+	}*/
+
 	// Use this for initialization
 	void Start () 
 	{
@@ -68,6 +83,14 @@ public class Enemy : MonoBehaviour
 		DistanceFromTarget ();
 	}
 
+	public bool IsMoving ()
+	{
+		if (_navMeshAgent.enabled && _navMeshAgent.hasPath)
+			return true;
+		else
+			return false;
+	}
+
 	void FixedUpdate () 
 	{
 
@@ -93,7 +116,7 @@ public class Enemy : MonoBehaviour
 		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
 	}
 
-	public void LookAt (Transform target)
+	public void LookAt (Transform target, float lerpValue = -1)
 	{
 		if (target == null)
 			return;
@@ -105,27 +128,31 @@ public class Enemy : MonoBehaviour
 
 		Quaternion rotation = Quaternion.LookRotation (targetPosition - _head.position);
 
+		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
+
 		if(lookAtHead)
-			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
+			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lerp);
 
 		targetPosition.y = transform.position.y; 
 		rotation = Quaternion.LookRotation (targetPosition - transform.position);
-		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
+		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lerp);
 	}
 
-	public void LookAt (Vector3 target)
+	public void LookAt (Vector3 target, float lerpValue = -1)
 	{
 		if (enemyState == EnemyState.Stunned)
 			return;
 
 		Quaternion rotation = Quaternion.LookRotation (target - _head.position);
 
+		float lerp = lerpValue != -1 ? lerpValue : lookAtLerp;
+
 		if(lookAtHead)
-			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lookAtLerp);
+			_head.rotation = Quaternion.Lerp (_head.rotation, rotation, lerp);
 
 		target.y = transform.position.y; 
 		rotation = Quaternion.LookRotation (target - transform.position);
-		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lookAtLerp);
+		transform.rotation = Quaternion.Lerp (transform.rotation, rotation, lerp);
 	}
 
 	void DistanceFromTarget ()
@@ -157,6 +184,9 @@ public class Enemy : MonoBehaviour
 	{
 		enemyState = EnemyState.Pushed;
 
+		if (OnPush != null)
+			OnPush ();
+
 		Stuck (false);
 
 		_rigidbody.AddForce (direction* force, forcemode);
@@ -168,9 +198,10 @@ public class Enemy : MonoBehaviour
 	{
 		enemyState = EnemyState.Pushed;
 
-		_navMeshAgent.enabled = false;
+		if (OnPush != null)
+			OnPush ();
 
-		_rigidbody.isKinematic = false;
+		Stuck (false);
 
 		_rigidbody.AddForce (direction* force, forcemode);
 
@@ -180,6 +211,9 @@ public class Enemy : MonoBehaviour
 	public void Stun (float duration)
 	{
 		enemyState = EnemyState.Stunned;
+
+		if (OnStun != null)
+			OnStun ();
 
 		Stuck (false);
 
@@ -193,18 +227,27 @@ public class Enemy : MonoBehaviour
 
 		_navMeshAgent.enabled = false;
 		_rigidbody.isKinematic = false;
+
+		if (OnStuck != null)
+			OnStuck ();
 	}
 
 	public void Unstuck ()
 	{
 		enemyState = EnemyState.Normal;
 
+		_rigidbody.velocity = Vector3.zero;
 		_rigidbody.isKinematic = true;
 		_navMeshAgent.enabled = true;
+		
+		if (OnUntuck != null)
+			OnUntuck ();
 	}
 
 	public IEnumerator WaitZeroVelocity (System.Action action)
 	{
+		yield return new WaitForSeconds (0.2f);
+
 		yield return new WaitUntil (() => _rigidbody.velocity.magnitude < 1.5f);
 
 		action ();
@@ -213,6 +256,9 @@ public class Enemy : MonoBehaviour
 	public void Hit (int damage)
 	{
 		health -= damage;
+
+		if (OnHit != null)
+			OnHit ();
 
 		if(debugLog)
 			Debug.Log (name + " : -" + damage);
@@ -225,6 +271,9 @@ public class Enemy : MonoBehaviour
 	{
 		if(debugLog)
 			Debug.Log (name + " : dead!");
+
+		if (OnDeath != null)
+			OnDeath ();
 
 		Destroy (gameObject);
 	}
@@ -263,7 +312,8 @@ public class Enemy : MonoBehaviour
 	{
 		StopCoroutine (SetFollowUpdate ());
 
-		_navMeshAgent.enabled = false;
+		_navMeshAgent.ResetPath ();
+		target = null;
 	}
 
 	public void SetSpeed (float speedValue)
@@ -285,7 +335,7 @@ public class Enemy : MonoBehaviour
 
 		if(_navMeshAgent.enabled)
 		{
-			if(_distanceFromTarget > _navMeshAgent.stoppingDistance)
+			if(_distanceFromTarget > _navMeshAgent.stoppingDistance && _navMeshAgent.enabled)
 				_navMeshAgent.SetDestination (target.position);
 		}
 

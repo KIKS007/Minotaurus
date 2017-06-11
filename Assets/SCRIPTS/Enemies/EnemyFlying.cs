@@ -21,7 +21,8 @@ public class EnemyFlying : EnemyComponent
 	public float floatingHeight = 1f;
 	public float floatingHeightSpeed = 1f;
 
-	public float _preferedHeight;
+	private float _preferedHeight;
+	private Tween _floatingTween;
 
 	protected override void Start ()
 	{
@@ -29,12 +30,18 @@ public class EnemyFlying : EnemyComponent
 
 		_preferedHeight = Random.Range (preferedHeightLimits.x, preferedHeightLimits.y);
 
-		DOTween.To (()=> _preferedHeight, x=> _preferedHeight =x, _preferedHeight + floatingHeight, floatingHeightSpeed).SetEase (Ease.OutQuad).SetLoops (-1, LoopType.Yoyo).SetSpeedBased ();
+		_floatingTween = DOTween.To (()=> _preferedHeight, x=> _preferedHeight =x, _preferedHeight + floatingHeight, floatingHeightSpeed).SetEase (Ease.OutQuad).SetLoops (-1, LoopType.Yoyo).SetSpeedBased ();
+
+		_enemyScript.OnStuck += () => _floatingTween.Pause ();
+		_enemyScript.OnUntuck += () => _floatingTween.Play ();
 	}
 
 	protected override void Update ()
 	{
 		base.Update ();
+
+		if (_enemyScript.enemyState != EnemyState.Normal)
+			return;
 
 		Avoid ();
 

@@ -30,6 +30,9 @@ public class EnemyShooting : EnemyComponent
 	{
 		base.Update ();
 
+		if (_enemyScript.enemyState != EnemyState.Normal)
+			return;
+
 		if(_enemyScript.distanceFromPlayer > shootingRange.x && _enemyScript.distanceFromPlayer < shootingRange.y)
 		{
 			_enemyScript.LookAt (_enemyScript._player);
